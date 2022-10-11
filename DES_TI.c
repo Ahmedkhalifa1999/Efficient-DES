@@ -206,11 +206,9 @@ static void desfunc(unsigned long *block, unsigned long *keys)  {
   //Fesitel Rounds, 2 rounds per iteration (Probably?)
   for( round = 0; round < 8; round++ ) {
     //Round 1
-    //Expansion
+    //Expansion + XOR + S-Box + Permutation
     work  = (right << 28) | (right >> 4);
-    //XOR with key
     work ^= *keys++;
-    //S-Box + Permutation
     fval  = SP7[ work        & 0x3fL];
     fval |= SP5[(work >>  8) & 0x3fL];
     fval |= SP3[(work >> 16) & 0x3fL];
@@ -224,11 +222,9 @@ static void desfunc(unsigned long *block, unsigned long *keys)  {
     leftt ^= fval;
 
     //Round 2
-    //Expansion
+    //Expansion + XOR + S-Box + Permutation
     work  = (leftt << 28) | (leftt >> 4);
-    //XOR with key
     work ^= *keys++;
-    //S-Box + Permutation
     fval  = SP7[ work        & 0x3fL];
     fval |= SP5[(work >>  8) & 0x3fL];
     fval |= SP3[(work >> 16) & 0x3fL];
