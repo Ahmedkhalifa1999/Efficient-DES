@@ -33,10 +33,14 @@ unsigned long long ExpansionPermutation(unsigned long long text)
 
 }
 
-//Combines S-Box and Permutation into one operation
-unsigned long long SBox_Permutation(unsigned long long text)
+unsigned long long SBox(unsigned long long text)
 {
-    
+
+}
+
+unsigned long long Permutation(unsigned long long text)
+{
+
 }
 
 unsigned long long FeistelFunction(unsigned long long text, unsigned long long k)
