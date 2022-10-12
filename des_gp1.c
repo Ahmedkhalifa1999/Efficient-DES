@@ -1,4 +1,4 @@
-unsigned long long PermutedChoice1(unsigned long long key)
+unsigned long long PermutedChoice1(unsigned long long key)//Amin
 {
     
 }
@@ -8,7 +8,7 @@ unsigned long long LeftCircularShift(unsigned long long key)
     
 }
 
-unsigned long long PermutedChoice2(unsigned long long key)
+unsigned long long PermutedChoice2(unsigned long long key)//Amin
 {
 
 }
