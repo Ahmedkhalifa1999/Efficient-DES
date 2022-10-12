@@ -101,10 +101,7 @@ long long S_BOX(long long input)
 
     
     output = (S8_API(S8_InputData) << S8_Output_Offset) | ((S7_API(S7_InputData) << S7_Output_Offset)) | ((S6_API(S6_InputData) << S6_Output_Offset)) | (S5_API(S5_InputData) << S5_Output_Offset) | ((S4_API(S4_InputData) << S4_Output_Offset)) | ((S3_API(S3_InputData) << S3_Output_Offset)) | ((S2_API(S2_InputData) << S2_Output_Offset)) | ((S1_API(S1_InputData) << S1_Output_Offset));
-    if (TEST)
-    {
-       
-    }
+
     return output;
 }
 
@@ -113,10 +110,7 @@ long S1_API(long S1_InputData)
 {
     int row = ((S1_InputData & (0b100000)) >> 4) + (S1_InputData & 0b1);
     int coloumn = ((S1_InputData & (0b011110)) >> 1);
-    if (TEST)
-    {
 
-    }
     return S1[row][coloumn];
     
 }
@@ -144,7 +138,6 @@ long S4_API(long S4_InputData)
     int coloumn = ((S4_InputData & (0b011110)) >> 1);
 
     return S4[row][coloumn];
-
 }
 long S5_API(long S5_InputData)
 {
