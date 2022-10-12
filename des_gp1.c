@@ -104,11 +104,6 @@ unsigned long long PermutedChoice1(unsigned long long key)//Amin
     return PC1;
 }
 
-unsigned long long LeftCircularShift(unsigned long long key)
-{
-    
-}
-
 unsigned long long PermutedChoice2(unsigned long long key)
 {
     unsigned long long PC2 = 0;
@@ -136,11 +131,6 @@ unsigned long long InitialPermutation(unsigned long long text)
 		temp |= bitVal << i;
 	}
 	return temp;
-}
-
-unsigned long long SwapHalves(unsigned long long text)
-{
-
 }
 
 unsigned long long InverseInitialPermutation(unsigned long long text)
@@ -311,7 +301,7 @@ void generateKeys(unsigned long long key)
     }
 }
 
-unsigned long long encrypt(unsigned long long text, char key)
+unsigned long long encrypt(unsigned long long text, unsigned long long key)
 {
     generateKeys(key);
     unsigned long long cipher = FeistelFunction(text, keys[0]);
@@ -322,7 +312,7 @@ unsigned long long encrypt(unsigned long long text, char key)
     return cipher;
 }
 
-unsigned long long decrypt(unsigned long long cipher, char key)
+unsigned long long decrypt(unsigned long long cipher, unsigned long long key)
 {
     generateKeys(key);
     unsigned long long text = FeistelFunction(cipher, keys[15]);
@@ -335,7 +325,8 @@ unsigned long long decrypt(unsigned long long cipher, char key)
 
 int main(int argc, char* argv[])
 {
-    unsigned long long test = 0xA35BF218AD28;
-    printf("%llX", InverseInitialPermutation(InitialPermutation(test)));
+    unsigned long long test = 0x0123456789ABCDEF;
+    unsigned long long key = 0x0123456789ABCDEF;
+    printf("%llX", encrypt(test, key));
     return 0;
 }
