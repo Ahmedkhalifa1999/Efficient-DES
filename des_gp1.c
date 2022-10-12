@@ -59,14 +59,26 @@ unsigned long long FeistelFunction(unsigned long long text, unsigned long long k
     return (Permutation(SBox(ExpansionPermutation(text & 0xFFFFFFFF) ^ key)) ^ (text >> 32)) | (text << 32);
 }
 
-char *encrypt(char *text, char key)
+unsigned long long encrypt(unsigned long long text, char key)
 {
-
+    generateKeys(key);
+    unsigned long long cipher = FesitelFunction(text, keys[0]);
+    for (int i = 1; i < 15; i++)
+    {
+        cipher = FeistelFunction(cipher, keys[i]);
+    }
+    return cipher;
 }
 
-char *decrypt(char *cipher, char key)
+unsigned long long decrypt(unsigned long long cipher, char key)
 {
-    
+    generateKeys(key);
+    unsigned long long text = FesitelFunction(cipher, keys[15]);
+    for (int i = 14; i >= 0; i--)
+    {
+        text = FeistelFunction(text, keys[i]);
+    }
+    return text;
 }
 
 void generateKeys(unsigned long long key)
