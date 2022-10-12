@@ -73,9 +73,35 @@ int message_expansion[] =  {32,  1,  2,  3,  4,  5,
 							24, 25, 26, 27, 28, 29,
 							28, 29, 30, 31, 32,  1};
 
+uint8_t keyPC1[56] = {
+   57, 49, 41, 33, 25, 17,  9,
+    1, 58, 50, 42, 34, 26, 18,
+   10,  2, 59, 51, 43, 35, 27,
+   19, 11,  3, 60, 52, 44, 36,
+   63, 55, 47, 39, 31, 23, 15,
+    7, 62, 54, 46, 38, 30, 22,
+   14,  6, 61, 53, 45, 37, 29,
+   21, 13,  5, 28, 20, 12,  4
+    };
+
+uint8_t keyPC2[48] = { 14, 17, 11, 24, 1,  5,  3,  28,
+                         15, 6,  21, 10, 23, 19, 12, 4,
+                         26, 8,  16, 7,  27, 20, 13, 2,
+                         41, 52, 31, 37, 47, 55, 30, 40,
+                         51, 45, 33, 48, 44, 49, 39, 56,
+                         34, 53, 46, 42, 50, 36, 29, 32 };
 unsigned long long PermutedChoice1(unsigned long long key)//Amin
 {
+    unsigned long long PC1 = 0;
     
+    for (uint8_t i = 0; i < 56; i++)
+    {
+        
+        if (key & (1ULL << (keyPC1[i]-1)))
+            PC1 |= (1ULL << i);
+        
+    }
+    return PC1;
 }
 
 unsigned long long LeftCircularShift(unsigned long long key)
@@ -85,6 +111,16 @@ unsigned long long LeftCircularShift(unsigned long long key)
 
 unsigned long long PermutedChoice2(unsigned long long key)
 {
+    unsigned long long PC2 = 0;
+    
+    for (int i = 0; i < 48; i++)
+    {
+
+        if (key & (1ULL << (keyPC2[i]-1)))
+            PC2 |= (1ULL << i);
+        
+    }
+    return PC2;
 
 }
 /*
