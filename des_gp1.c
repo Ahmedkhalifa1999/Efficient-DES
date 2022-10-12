@@ -54,9 +54,9 @@ unsigned long long Permutation(unsigned long long text)
     return permuted;
 }
 
-unsigned long long FeistelFunction(unsigned long long text, unsigned long long k)
+unsigned long long FeistelFunction(unsigned long long text, unsigned long long key)
 {
-
+    return (Permutation(SBox(ExpansionPermutation(text & 0xFFFFFFFF) ^ key)) ^ (text >> 32)) | (text << 32);
 }
 
 char *encrypt(char *text, char key)
