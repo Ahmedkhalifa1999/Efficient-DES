@@ -94,7 +94,7 @@ unsigned long long PermutedChoice1(unsigned long long key)//Amin
 {
     unsigned long long PC1 = 0;
     
-    for (uint8_t i = 0; i < 56; i++)
+    for (unsigned char i = 0; i < 56; i++)
     {
         
         if (key & (1ULL << (keyPC1[i]-1)))
@@ -113,7 +113,7 @@ unsigned long long PermutedChoice2(unsigned long long key)
 {
     unsigned long long PC2 = 0;
     
-    for (int i = 0; i < 48; i++)
+    for (unsigned char i = 0; i < 48; i++)
     {
 
         if (key & (1ULL << (keyPC2[i]-1)))
