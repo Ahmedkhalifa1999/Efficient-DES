@@ -1,4 +1,4 @@
-#include <stdio.h>
+unsigned long long keys[16] = {0};
 
 unsigned long long PermutedChoice1(unsigned long long key)//Amin
 {
@@ -69,9 +69,21 @@ char *decrypt(char *cipher, char key)
     
 }
 
+void generateKeys(unsigned long long key)
+{
+    static const int keyShifts[16] = {1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1};
+    key = PermutedChoice1(key);
+    for (int i = 0; i < 16; i++)
+    {
+        unsigned long* keyPtr = (unsigned long*) &key;
+        *keyPtr = (*keyPtr << keyShifts[i]) | (*keyPtr >> 32-keyShifts[i]);
+        keyPtr++;
+        *keyPtr = (*keyPtr << keyShifts[i]) | (*keyPtr >> 32-keyShifts[i]);
+        keys[i] = PermutedChoice2(key);
+    }
+}
+
 int main(int argc, char* argv[])
 {
-    unsigned long long text = 0xA03538C2;
-    printf("%x", Permutation(text));
     return 0;
 }
