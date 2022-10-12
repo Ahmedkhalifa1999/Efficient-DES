@@ -295,16 +295,15 @@ void generateKeys(unsigned long long key)
     key = PermutedChoice1(key);
     for (int i = 0; i < 16; i++)
     {
-        unsigned long* keyPtr = (unsigned long*) &key;
-        *keyPtr = (*keyPtr << keyShifts[i]) | (*keyPtr >> 32-keyShifts[i]);
-        keyPtr++;
-        *keyPtr = (*keyPtr << keyShifts[i]) | (*keyPtr >> 32-keyShifts[i]);
+        unsigned long long leftKey = ((key & 0x00FFFFFFF0000000) << keyShifts[i]) | ((key & 0x00FFFFFFF0000000) >> 28-keyShifts[i]);
+        leftKey &= 0x00FFFFFFF0000000;
+
+        unsigned long long rightKey = ((key & 0x000000000FFFFFFF) << keyShifts[i]) | ((key & 0x000000000FFFFFFF) >> 28-keyShifts[i]);
+        rightKey &= 0x000000000FFFFFFF;
+
+        key =  leftKey | rightKey;
         
-        /*For Debugging*/
-        keys[i] = key;
-        
-        /*Original*/
-        //keys[i] = PermutedChoice2(key);
+        keys[i] = PermutedChoice2(key);
     }
 }
 
@@ -313,7 +312,7 @@ unsigned long long encrypt(unsigned long long text, unsigned long long key)
     generateKeys(key);
     text = InitialPermutation(text);
     unsigned long long cipher = FeistelFunction(text, keys[0]);
-    for (int i = 1; i < 15; i++)
+    for (int i = 1; i < 16; i++)
     {
         cipher = FeistelFunction(cipher, keys[i]);
     }
@@ -338,10 +337,8 @@ int main(int argc, char* argv[])
 {
     unsigned long long test = 0x0123456789ABCDEF;
     unsigned long long key = 0x0123456789ABCDEF;
-    generateKeys(key);
-    for (int i = 0; i < 16; i++)
-    {
-        printf("%llX\n", keys[i]);
-    }
+
+    printf("%llX", encrypt(test, key));
+
     return 0;
 }
