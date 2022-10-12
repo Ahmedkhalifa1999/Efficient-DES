@@ -96,10 +96,11 @@ unsigned long long PermutedChoice1(unsigned long long key)//Amin
     
     for (unsigned char i = 0; i < 56; i++)
     {
-        
+        PC1 |= ((key >> (64 - keyPC1[i])) & 0x01) << 55-i;
+        /*
         if (key & (1ULL << (keyPC1[i]-1)))
             PC1 |= (1ULL << i);
-        
+        */
     }
     return PC1;
 }
@@ -110,10 +111,11 @@ unsigned long long PermutedChoice2(unsigned long long key)
     
     for (unsigned char i = 0; i < 48; i++)
     {
-
+        PC2 |= ((key >> (56 - keyPC2[i])) & 0x01) << 47-i;
+        /*
         if (key & (1ULL << (keyPC2[i]-1)))
             PC2 |= (1ULL << i);
-        
+        */  
     }
     return PC2;
 
@@ -297,36 +299,49 @@ void generateKeys(unsigned long long key)
         *keyPtr = (*keyPtr << keyShifts[i]) | (*keyPtr >> 32-keyShifts[i]);
         keyPtr++;
         *keyPtr = (*keyPtr << keyShifts[i]) | (*keyPtr >> 32-keyShifts[i]);
-        keys[i] = PermutedChoice2(key);
+        
+        /*For Debugging*/
+        keys[i] = key;
+        
+        /*Original*/
+        //keys[i] = PermutedChoice2(key);
     }
 }
 
 unsigned long long encrypt(unsigned long long text, unsigned long long key)
 {
     generateKeys(key);
+    text = InitialPermutation(text);
     unsigned long long cipher = FeistelFunction(text, keys[0]);
     for (int i = 1; i < 15; i++)
     {
         cipher = FeistelFunction(cipher, keys[i]);
     }
-    return cipher;
+    cipher = (cipher << 32) | (cipher >> 32);
+    return InverseInitialPermutation(cipher);
 }
 
 unsigned long long decrypt(unsigned long long cipher, unsigned long long key)
 {
     generateKeys(key);
+    cipher = InitialPermutation(cipher);
     unsigned long long text = FeistelFunction(cipher, keys[15]);
     for (int i = 14; i >= 0; i--)
     {
         text = FeistelFunction(text, keys[i]);
     }
-    return text;
+    text = (text << 32) | (text >> 32);
+    return InverseInitialPermutation(text);
 }
 
 int main(int argc, char* argv[])
 {
     unsigned long long test = 0x0123456789ABCDEF;
     unsigned long long key = 0x0123456789ABCDEF;
-    printf("%llX", encrypt(test, key));
+    generateKeys(key);
+    for (int i = 0; i < 16; i++)
+    {
+        printf("%llX\n", keys[i]);
+    }
     return 0;
 }
