@@ -1,7 +1,5 @@
-#include <iostream>
 #include <math.h>
-#include <bitset>
-using namespace std;
+#include <stdio.h>
 
 #define PLAIN_TEXT_SIZE	64
 
@@ -246,28 +244,6 @@ unsigned long long FeistelFunction(unsigned long long text, unsigned long long k
     return (Permutation(SBox(ExpansionPermutation(text & 0xFFFFFFFF) ^ key)) ^ (text >> 32)) | (text << 32);
 }
 
-unsigned long long encrypt(unsigned long long text, char key)
-{
-    generateKeys(key);
-    unsigned long long cipher = FesitelFunction(text, keys[0]);
-    for (int i = 1; i < 15; i++)
-    {
-        cipher = FeistelFunction(cipher, keys[i]);
-    }
-    return cipher;
-}
-
-unsigned long long decrypt(unsigned long long cipher, char key)
-{
-    generateKeys(key);
-    unsigned long long text = FesitelFunction(cipher, keys[15]);
-    for (int i = 14; i >= 0; i--)
-    {
-        text = FeistelFunction(text, keys[i]);
-    }
-    return text;
-}
-
 void generateKeys(unsigned long long key)
 {
     static const int keyShifts[16] = {1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1};
@@ -282,7 +258,31 @@ void generateKeys(unsigned long long key)
     }
 }
 
+unsigned long long encrypt(unsigned long long text, char key)
+{
+    generateKeys(key);
+    unsigned long long cipher = FeistelFunction(text, keys[0]);
+    for (int i = 1; i < 15; i++)
+    {
+        cipher = FeistelFunction(cipher, keys[i]);
+    }
+    return cipher;
+}
+
+unsigned long long decrypt(unsigned long long cipher, char key)
+{
+    generateKeys(key);
+    unsigned long long text = FeistelFunction(cipher, keys[15]);
+    for (int i = 14; i >= 0; i--)
+    {
+        text = FeistelFunction(text, keys[i]);
+    }
+    return text;
+}
+
 int main(int argc, char* argv[])
 {
+    unsigned long long test = 0xA35BF218AD28;
+    printf("%llX", InverseInitialPermutation(InitialPermutation(test)));
     return 0;
 }
