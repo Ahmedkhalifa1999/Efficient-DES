@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdio.h>
+#include <string.h>
 
 #define PLAIN_TEXT_SIZE	64
 #define MUSK 0x8000000000000000
@@ -104,6 +105,11 @@ unsigned long long PermutedChoice1(unsigned long long key)//Amin
     }
     return PC1;
 }
+
+
+
+
+
 
 unsigned long long PermutedChoice2(unsigned long long key)
 {
@@ -270,6 +276,20 @@ unsigned long long SBox(unsigned long long text)
     return output;
 }
 
+unsigned long long ascii_to_hex(char c)
+{
+        unsigned long long  num = (int) c;
+        if(num < 58 && num > 47)
+        {
+                return num - 48; 
+        }
+        if(num < 103 && num > 96)
+        {
+                return num - 87;
+        }
+        return num;
+}
+
 unsigned long long Permutation(unsigned long long text)
 {
     static const int table[] = {16,  7, 20, 21, 29, 12, 28, 17,
@@ -307,9 +327,8 @@ void generateKeys(unsigned long long key)
     }
 }
 
-unsigned long long encrypt(unsigned long long text, unsigned long long key)
+unsigned long long encrypt(unsigned long long text)
 {
-    generateKeys(key);
     text = InitialPermutation(text);
     unsigned long long cipher = FeistelFunction(text, keys[0]);
     for (int i = 1; i < 16; i++)
@@ -320,9 +339,8 @@ unsigned long long encrypt(unsigned long long text, unsigned long long key)
     return InverseInitialPermutation(cipher);
 }
 
-unsigned long long decrypt(unsigned long long cipher, unsigned long long key)
+unsigned long long decrypt(unsigned long long cipher)
 {
-    generateKeys(key);
     cipher = InitialPermutation(cipher);
     unsigned long long text = FeistelFunction(cipher, keys[15]);
     for (int i = 14; i >= 0; i--)
@@ -333,12 +351,240 @@ unsigned long long decrypt(unsigned long long cipher, unsigned long long key)
     return InverseInitialPermutation(text);
 }
 
+unsigned long long textBlocks[1024];
+unsigned long long cipherBlocks[1024];
+
 int main(int argc, char* argv[])
 {
-    unsigned long long test = 0x0123456789ABCDEF;
-    unsigned long long key = 0x0123456789ABCDEF;
+    if (argc == 2 && strcmp(argv[1], "encrypt") == 0)
+    {
+        FILE *keyFile = fopen("key.txt", "r");
+        unsigned long long key = 0;
+        if (keyFile == NULL)
+        { 
+            printf("No Key File\n");
+            printf("Press Enter to Continue..");
+            getchar();
+            return 0;
+        }
+        fscanf(keyFile, "%llX", &key);
+        //printf("Key: %llX", key);
+        generateKeys(key);
 
-    printf("%llX", encrypt(test, key));
+        FILE* textFile = fopen("plain_text.txt", "rb");
+        FILE* cipherFile = fopen("cipher.hex", "wb");
+        if (textFile == NULL)
+        {
+            printf("No Plain Text File\n");
+            printf("Press Enter to Continue..");
+            getchar();
+            return 0;
+        }
+        if (cipherFile == NULL)
+        {
+            printf("Cannot Create Cipher File\n");
+            printf("Press Enter to Continue..");
+            getchar();
+            return 0;
+        }
+        size_t blockCount = fread((void*) textBlocks, sizeof(unsigned long long), 1024, textFile);
+        while (blockCount > 0) {
+            int maximum = blockCount < 1024? blockCount:1024;
+            for (int i = 0; i < maximum; i++)
+            {
+                cipherBlocks[i] = encrypt(textBlocks[i]);
+            }
+            fwrite((const void*) cipherBlocks, sizeof(unsigned long long), maximum, cipherFile);
+            blockCount = fread((void*) textBlocks, sizeof(unsigned long long), 1024, textFile);
+        }
+        fclose(keyFile);
+        fclose(textFile);
+        fclose(cipherFile);\
+        printf("Encryption Done\n");
+    }
+    else if(argc == 2 && strcmp(argv[1], "decrypt") == 0)
+    {
+        FILE *keyFile = fopen("key.txt", "r");
+        unsigned long long key = 0;
+        if (keyFile == NULL)
+        { 
+            printf("No Key File\n");
+            printf("Press Enter to Continue..");
+            getchar();
+            return 0;
+        }
+        fscanf(keyFile, "%llX", &key);
+        //printf("Key: %llX", key);
+        generateKeys(key);
 
+        FILE* textFile = fopen("decrypted.txt", "wb");
+        FILE* cipherFile = fopen("cipher.hex", "rb");
+        if (textFile == NULL)
+        {
+            printf("Cannot Create Plain Text File\n");
+            printf("Press Enter to Continue..");
+            getchar();
+            return 0;
+        }
+        if (cipherFile == NULL)
+        {
+            printf("No Cipher File\n");
+            printf("Press Enter to Continue..");
+            getchar();
+            return 0;
+        }
+        size_t blockCount = fread((void*) cipherBlocks, sizeof(unsigned long long), 1024, cipherFile);
+        while (blockCount > 0) {
+            int maximum = blockCount < 1024? blockCount:1024;
+            for (int i = 0; i < maximum; i++)
+            {
+                textBlocks[i] = decrypt(cipherBlocks[i]);
+            }
+            fwrite((const void*) textBlocks, sizeof(unsigned long long), maximum, textFile);
+            blockCount = fread((void*) cipherBlocks, sizeof(unsigned long long), 1024, cipherFile);
+        }
+        fclose(textFile);
+        fclose(cipherFile);\
+        printf("Decryption Done\n");
+    }
+    else printf("Invalid Arguments\n");
+    printf("Press Enter to Continue..");
+    getchar();
     return 0;
 }
+
+
+// void init()
+// {
+    
+//     /************************CLEANING THE OUTPUT FILES**********************/
+    
+//     FILE *file;
+//     file = fopen("C:\\Users\\Ahmed\\Desktop\\Computer and Network Security\\DES Encryption Project\\DES Sample\\decryption.txt", "w");
+//     fprintf(file, "%s", "");
+//     fclose(file);
+
+
+//     file = fopen("C:\\Users\\Ahmed\\Desktop\\Computer and Network Security\\DES Encryption Project\\DES Sample\\output.txt", "w");
+//     fprintf(file, "%s", "");
+//     fclose(file);
+
+//     file = fopen("C:\\Users\\Ahmed\\Desktop\\Computer and Network Security\\DES Encryption Project\\DES Sample\\output.hex", "w");
+//     fprintf(file, "%s", "");
+//     fclose(file);
+
+//     /**********************************************************************/
+
+// }
+// unsigned long long GetKey()
+// {
+//     char data[17];
+//     FILE *file;
+//     unsigned long long key=0;
+//     file = fopen("C:\\Users\\Ahmed\\Desktop\\Computer and Network Security\\DES Encryption Project\\DES Sample\\key.txt", "r");
+//     if (fgets(data, 17, file) != NULL)
+//     {
+//         for(int loop =15;loop>=0;loop--)
+//         {
+//             unsigned long long hex=ascii_to_hex(data[loop]);
+//             key|=hex<<((15-loop)*4);
+//         }
+//     }
+//     return key;
+// }
+
+// int main(int argc, char* argv[])
+// {
+
+//     init();
+//     char data[9];
+//     unsigned long long bin=0;
+//     unsigned long long out=0;
+//     FILE *file;
+//     FILE *filePtr;
+//     char data2[9];
+//     unsigned long long key = GetKey();
+//     printf("Key: %llx \n",key);
+
+
+//     file = fopen("C:\\Users\\Ahmed\\Desktop\\Computer and Network Security\\DES Encryption Project\\DES Sample\\plain_text.txt", "r");
+
+//     if (file == NULL)
+//     {
+//         printf("Error opening file.\n");
+//         return 1;
+//     }
+//     while (!feof(file) && !ferror(file))
+//     {
+//         if (fgets(data, 9, file) != NULL)
+//         {
+        
+        
+        
+//             out=0;
+//             bin=0;
+//             for(int i=0;i<9;i++)
+//             {
+//                 data2[i]=data[8-i];
+//             }
+//             for (int i = 1; i < 9; ++i) {
+//                 bin = bin | ((unsigned long long)data2[i] << (8 * (i-1)));
+//             }
+
+
+//             printf("Data in string: %s \n",data);
+
+//             printf("Data in Decimal: %llx \n",bin);
+
+        
+//             //encrypting 
+//             out=encrypt(bin,key);
+//             printf("\nout: %llu \n",out);
+
+//             //convertion the output of the decryption in ASCII 
+//             memcpy(data,&out,sizeof out);
+//             //The copying process makes the array flipped and ends with null which comes from nothing
+//             //this loop flips the array and eliminate the unwanted null
+//             for(int i=0;i<9;i++)
+//             {
+//                 data2[i]=data[7-i];
+//             }
+//             //Writing the ASCII encryption in the output.txt
+//             filePtr = fopen("C:\\Users\\Ahmed\\Desktop\\Computer and Network Security\\DES Encryption Project\\DES Sample\\output.txt", "a");
+//             fprintf(filePtr, "%s", data2);
+//             fclose(filePtr);
+
+//             //Writing the HEX encryption in the output.hex
+//             filePtr = fopen("C:\\Users\\Ahmed\\Desktop\\Computer and Network Security\\DES Encryption Project\\DES Sample\\output.hex", "a");
+//             fprintf(filePtr, "%llx", out);
+//             fclose(filePtr);
+
+
+//             //Decrypting 
+//             out=decrypt(out,key);
+//             //convertion the output of the decryption in ASCII 
+//             memcpy(data,&out,sizeof out);
+//             //The copying process makes the array flipped and ends with null which comes from nothing
+//             //this loop flips the array and eliminate the unwanted null
+//             for(int i=0;i<9;i++)
+//             {
+//                 data2[i]=data[7-i];
+//             }
+
+//             //Writing the decrypted data in the decryption.txt
+//             filePtr = fopen("C:\\Users\\Ahmed\\Desktop\\Computer and Network Security\\DES Encryption Project\\DES Sample\\decryption.txt", "a");
+//             fprintf(filePtr, "%s", data2);
+//             fclose(filePtr);
+
+
+//         }
+      
+
+//     }
+//     fclose(file);
+
+  
+
+//     return 0;
+// }
+
