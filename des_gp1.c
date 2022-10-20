@@ -353,6 +353,15 @@ unsigned long long decrypt(unsigned long long cipher)
 
 unsigned long long textBlocks[1024];
 unsigned long long cipherBlocks[1024];
+char cipherHex[17*1024 + 1];
+
+unsigned long long IHateEndinanness(unsigned long long text)
+{
+    text = (text << 32) | (text >> 32);
+    text = ((text << 16) & 0xFFFF0000FFFF0000) | ((text >> 16) & 0x0000FFFF0000FFFF);
+    text = ((text << 8) & 0xFF00FF00FF00FF00) | ((text >> 8) & 0x00FF00FF00FF00FF);
+    return text;
+}
 
 int main(int argc, char* argv[])
 {
@@ -367,12 +376,12 @@ int main(int argc, char* argv[])
             getchar();
             return 0;
         }
-        fscanf(keyFile, "%llX", &key);
-        //printf("Key: %llX", key);
+        fscanf(keyFile, "%016llX", &key);
         generateKeys(key);
 
         FILE* textFile = fopen("plain_text.txt", "rb");
         FILE* cipherFile = fopen("cipher.hex", "wb");
+        FILE* cipherHexFile = fopen("cipherHEX.txt", "w");
         if (textFile == NULL)
         {
             printf("No Plain Text File\n");
@@ -392,14 +401,22 @@ int main(int argc, char* argv[])
             int maximum = blockCount < 1024? blockCount:1024;
             for (int i = 0; i < maximum; i++)
             {
+                textBlocks[i] = IHateEndinanness(textBlocks[i]);
                 cipherBlocks[i] = encrypt(textBlocks[i]);
+                cipherBlocks[i] = IHateEndinanness(cipherBlocks[i]);
             }
             fwrite((const void*) cipherBlocks, sizeof(unsigned long long), maximum, cipherFile);
+            int i;
+            for (i = 0; i < maximum; i++)
+            {
+                sprintf(&cipherHex[17*i], "%016llX\n", cipherBlocks[i]);
+            }
+            fputs(cipherHex, cipherHexFile);
             blockCount = fread((void*) textBlocks, sizeof(unsigned long long), 1024, textFile);
         }
         fclose(keyFile);
         fclose(textFile);
-        fclose(cipherFile);\
+        fclose(cipherFile);
         printf("Encryption Done\n");
     }
     else if(argc == 2 && strcmp(argv[1], "decrypt") == 0)
@@ -438,13 +455,15 @@ int main(int argc, char* argv[])
             int maximum = blockCount < 1024? blockCount:1024;
             for (int i = 0; i < maximum; i++)
             {
+                cipherBlocks[i] = IHateEndinanness(cipherBlocks[i]);
                 textBlocks[i] = decrypt(cipherBlocks[i]);
+                textBlocks[i] = IHateEndinanness(textBlocks[i]);
             }
             fwrite((const void*) textBlocks, sizeof(unsigned long long), maximum, textFile);
             blockCount = fread((void*) cipherBlocks, sizeof(unsigned long long), 1024, cipherFile);
         }
         fclose(textFile);
-        fclose(cipherFile);\
+        fclose(cipherFile);
         printf("Decryption Done\n");
     }
     else printf("Invalid Arguments\n");
