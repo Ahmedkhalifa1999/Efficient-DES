@@ -343,8 +343,7 @@ unsigned long long IHateEndinanness(unsigned long long text)
     return text;
 }
 
-unsigned long long textBlocks[THREAD_COUNT][BLOCK_SIZE];
-unsigned long long cipherBlocks[THREAD_COUNT][BLOCK_SIZE];
+unsigned long long data[THREAD_COUNT][BLOCK_SIZE];
 char cipherHex[THREAD_COUNT][17*BLOCK_SIZE + 1];
 
 typedef struct {
@@ -358,14 +357,14 @@ void * encryptBlock(void *args)
     int maximum = ((ThreadArgs *)args)->maximum;
     for (int i = 0; i < maximum; i++)
     {
-        textBlocks[threadNumber][i] = IHateEndinanness(textBlocks[threadNumber][i]);
-        cipherBlocks[threadNumber][i] = encrypt(textBlocks[threadNumber][i]);
-        cipherBlocks[threadNumber][i] = IHateEndinanness(cipherBlocks[threadNumber][i]);
+        data[threadNumber][i] = IHateEndinanness(data[threadNumber][i]);
+        data[threadNumber][i] = encrypt(data[threadNumber][i]);
+        data[threadNumber][i] = IHateEndinanness(data[threadNumber][i]);
     }
     int i;
     for (i = 0; i < maximum; i++)
     {
-        sprintf(&cipherHex[threadNumber][17*i], "%016llX\n", cipherBlocks[threadNumber][i]);
+        sprintf(&cipherHex[threadNumber][17*i], "%016llX\n", data[threadNumber][i]);
     }
     return NULL;
 }
@@ -376,9 +375,9 @@ void * decryptBlock(void *args)
     int maximum = ((ThreadArgs *)args)->maximum;
     for (int i = 0; i < maximum; i++)
     {
-        cipherBlocks[threadNumber][i] = IHateEndinanness(cipherBlocks[threadNumber][i]);
-        textBlocks[threadNumber][i] = decrypt(cipherBlocks[threadNumber][i]);
-        textBlocks[threadNumber][i] = IHateEndinanness(textBlocks[threadNumber][i]);
+        data[threadNumber][i] = IHateEndinanness(data[threadNumber][i]);
+        data[threadNumber][i] = decrypt(data[threadNumber][i]);
+        data[threadNumber][i] = IHateEndinanness(data[threadNumber][i]);
     }
     return NULL;
 }
@@ -417,7 +416,7 @@ int main(int argc, char* argv[])
             getchar();
             return 0;
         }
-        size_t blockCount = fread((void*) textBlocks, sizeof(unsigned long long), THREAD_COUNT*BLOCK_SIZE, textFile);
+        size_t blockCount = fread((void*) data, sizeof(unsigned long long), THREAD_COUNT*BLOCK_SIZE, textFile);
         while (blockCount > 0) {
             int maximum = blockCount < THREAD_COUNT*BLOCK_SIZE? blockCount:THREAD_COUNT*BLOCK_SIZE;
             int remaining = maximum;
@@ -438,13 +437,13 @@ int main(int argc, char* argv[])
                 pthread_join(threads[i], NULL);
             }
 
-            fwrite((const void*) cipherBlocks, sizeof(unsigned long long), maximum, cipherFile);
+            fwrite((const void*) data, sizeof(unsigned long long), maximum, cipherFile);
             for (int i = 0; i < THREAD_COUNT; i++)
             {
                 fputs(cipherHex[i], cipherHexFile);
             }
             
-            blockCount = fread((void*) textBlocks, sizeof(unsigned long long), THREAD_COUNT*BLOCK_SIZE, textFile);
+            blockCount = fread((void*) data, sizeof(unsigned long long), THREAD_COUNT*BLOCK_SIZE, textFile);
         }
         fclose(keyFile);
         fclose(textFile);
@@ -482,7 +481,7 @@ int main(int argc, char* argv[])
             getchar();
             return 0;
         }
-        size_t blockCount = fread((void*) cipherBlocks, sizeof(unsigned long long), THREAD_COUNT*BLOCK_SIZE, cipherFile);
+        size_t blockCount = fread((void*) data, sizeof(unsigned long long), THREAD_COUNT*BLOCK_SIZE, cipherFile);
         while (blockCount > 0) {
             int maximum = blockCount < THREAD_COUNT*BLOCK_SIZE? blockCount:THREAD_COUNT*BLOCK_SIZE;
             int remaining = maximum;
@@ -504,8 +503,8 @@ int main(int argc, char* argv[])
                 pthread_join(threads[i], NULL);
             }
 
-            fwrite((const void*) textBlocks, sizeof(unsigned long long), maximum, textFile);
-            blockCount = fread((void*) cipherBlocks, sizeof(unsigned long long), THREAD_COUNT*BLOCK_SIZE, cipherFile);
+            fwrite((const void*) data, sizeof(unsigned long long), maximum, textFile);
+            blockCount = fread((void*) data, sizeof(unsigned long long), THREAD_COUNT*BLOCK_SIZE, cipherFile);
         }
         fclose(textFile);
         fclose(cipherFile);
