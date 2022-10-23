@@ -1,6 +1,7 @@
-#include <math.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
+#include <pthread.h>
 
 #define PLAIN_TEXT_SIZE	64
 #define MUSK 0x8000000000000000
@@ -351,9 +352,9 @@ unsigned long long decrypt(unsigned long long cipher)
     return InverseInitialPermutation(text);
 }
 
-unsigned long long textBlocks[1024];
-unsigned long long cipherBlocks[1024];
-char cipherHex[17*1024 + 1];
+unsigned long long textBlocks[16][1024];
+unsigned long long cipherBlocks[16][1024];
+char cipherHex[16][17*1024 + 1];
 
 unsigned long long IHateEndinanness(unsigned long long text)
 {
@@ -363,8 +364,45 @@ unsigned long long IHateEndinanness(unsigned long long text)
     return text;
 }
 
+typedef struct {
+    char ThreadNumber;
+    int maximum;
+} ThreadArgs;
+
+void * encryptBlock(void *args)
+{
+    char threadNumber = ((ThreadArgs *)args)->ThreadNumber;
+    int maximum = ((ThreadArgs *)args)->maximum;
+    for (int i = 0; i < maximum; i++)
+    {
+        textBlocks[threadNumber][i] = IHateEndinanness(textBlocks[threadNumber][i]);
+        cipherBlocks[threadNumber][i] = encrypt(textBlocks[threadNumber][i]);
+        cipherBlocks[threadNumber][i] = IHateEndinanness(cipherBlocks[threadNumber][i]);
+    }
+    int i;
+    for (i = 0; i < maximum; i++)
+    {
+        sprintf(&cipherHex[threadNumber][17*i], "%016llX\n", cipherBlocks[threadNumber][i]);
+    }
+    return NULL;
+}
+
+void * decryptBlock(void *args)
+{
+    char threadNumber = ((ThreadArgs *)args)->ThreadNumber;
+    int maximum = ((ThreadArgs *)args)->maximum;
+    for (int i = 0; i < maximum; i++)
+    {
+        cipherBlocks[threadNumber][i] = IHateEndinanness(cipherBlocks[threadNumber][i]);
+        textBlocks[threadNumber][i] = decrypt(cipherBlocks[threadNumber][i]);
+        textBlocks[threadNumber][i] = IHateEndinanness(textBlocks[threadNumber][i]);
+    }
+    return NULL;
+}
+
 int main(int argc, char* argv[])
 {
+    clock_t start = clock();
     if (argc == 2 && strcmp(argv[1], "encrypt") == 0)
     {
         FILE *keyFile = fopen("key.txt", "r");
@@ -396,23 +434,35 @@ int main(int argc, char* argv[])
             getchar();
             return 0;
         }
-        size_t blockCount = fread((void*) textBlocks, sizeof(unsigned long long), 1024, textFile);
+        size_t blockCount = fread((void*) textBlocks, sizeof(unsigned long long), 16*1024, textFile);
         while (blockCount > 0) {
-            int maximum = blockCount < 1024? blockCount:1024;
-            for (int i = 0; i < maximum; i++)
+            int maximum = blockCount < 16*1024? blockCount:16*1024;
+            int remaining = maximum;
+            pthread_t threads[16];
+            ThreadArgs args[16];
+            int threadCount = 0;
+            for (int i = 0; i < 16; i++)
             {
-                textBlocks[i] = IHateEndinanness(textBlocks[i]);
-                cipherBlocks[i] = encrypt(textBlocks[i]);
-                cipherBlocks[i] = IHateEndinanness(cipherBlocks[i]);
+                args[i].ThreadNumber = i;
+                args[i].maximum = remaining < 1024? remaining:1024;
+                pthread_create(&threads[i], NULL, &encryptBlock, (void *)&args[i]);
+                remaining -= args[i].maximum;
+                threadCount++;
+                if (remaining == 0) break;
             }
+
+            for (int i = 0; i < threadCount; i++)
+            {
+                pthread_join(threads[i], NULL);
+            }
+
             fwrite((const void*) cipherBlocks, sizeof(unsigned long long), maximum, cipherFile);
-            int i;
-            for (i = 0; i < maximum; i++)
+            for (int i = 0; i < 16; i++)
             {
-                sprintf(&cipherHex[17*i], "%016llX\n", cipherBlocks[i]);
+                fputs(cipherHex[i], cipherHexFile);
             }
-            fputs(cipherHex, cipherHexFile);
-            blockCount = fread((void*) textBlocks, sizeof(unsigned long long), 1024, textFile);
+            
+            blockCount = fread((void*) textBlocks, sizeof(unsigned long long), 16*1024, textFile);
         }
         fclose(keyFile);
         fclose(textFile);
@@ -450,23 +500,38 @@ int main(int argc, char* argv[])
             getchar();
             return 0;
         }
-        size_t blockCount = fread((void*) cipherBlocks, sizeof(unsigned long long), 1024, cipherFile);
+        size_t blockCount = fread((void*) cipherBlocks, sizeof(unsigned long long), 16*1024, cipherFile);
         while (blockCount > 0) {
-            int maximum = blockCount < 1024? blockCount:1024;
-            for (int i = 0; i < maximum; i++)
+            int maximum = blockCount < 16*1024? blockCount:16*1024;
+            int remaining = maximum;
+            pthread_t threads[16];
+            ThreadArgs args[16];
+            int threadCount = 0;
+            for (int i = 0; i < 16; i++)
             {
-                cipherBlocks[i] = IHateEndinanness(cipherBlocks[i]);
-                textBlocks[i] = decrypt(cipherBlocks[i]);
-                textBlocks[i] = IHateEndinanness(textBlocks[i]);
+                args[i].ThreadNumber = i;
+                args[i].maximum = remaining < 1024? remaining:1024;
+                pthread_create(&threads[i], NULL, &decryptBlock, (void *)&args[i]);
+                remaining -= args[i].maximum;
+                threadCount++;
+                if (remaining == 0) break;
             }
+
+            for (int i = 0; i < threadCount; i++)
+            {
+                pthread_join(threads[i], NULL);
+            }
+
             fwrite((const void*) textBlocks, sizeof(unsigned long long), maximum, textFile);
-            blockCount = fread((void*) cipherBlocks, sizeof(unsigned long long), 1024, cipherFile);
+            blockCount = fread((void*) cipherBlocks, sizeof(unsigned long long), 16*1024, cipherFile);
         }
         fclose(textFile);
         fclose(cipherFile);
         printf("Decryption Done\n");
     }
     else printf("Invalid Arguments\n");
+    clock_t end = clock();
+    printf("Process took %f seconds\n", (float)(end-start)/CLOCKS_PER_SEC);
     printf("Press Enter to Continue..");
     getchar();
     return 0;
