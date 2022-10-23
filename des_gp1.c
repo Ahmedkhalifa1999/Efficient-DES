@@ -383,9 +383,6 @@ void * decryptBlock(void *args)
     return NULL;
 }
 
-clock_t FileIO_time = 0;
-clock_t Algorithm_time = 0; 
-
 int main(int argc, char* argv[])
 {
     clock_t start = clock();
@@ -422,7 +419,6 @@ int main(int argc, char* argv[])
         }
         size_t blockCount = fread((void*) textBlocks, sizeof(unsigned long long), THREAD_COUNT*BLOCK_SIZE, textFile);
         while (blockCount > 0) {
-            clock_t pre_start = clock();
             int maximum = blockCount < THREAD_COUNT*BLOCK_SIZE? blockCount:THREAD_COUNT*BLOCK_SIZE;
             int remaining = maximum;
             pthread_t threads[THREAD_COUNT];
@@ -437,17 +433,11 @@ int main(int argc, char* argv[])
                 threadCount++;
                 if (remaining == 0) break;
             }
-            clock_t pre_end = clock();
-            FileIO_time += pre_end - pre_start;
-            clock_t algo_start = clock();
             for (int i = 0; i < threadCount; i++)
             {
                 pthread_join(threads[i], NULL);
             }
-            clock_t algo_end = clock();
-            Algorithm_time += algo_end - algo_start;
 
-            clock_t post_start = clock();
             fwrite((const void*) cipherBlocks, sizeof(unsigned long long), maximum, cipherFile);
             for (int i = 0; i < THREAD_COUNT; i++)
             {
@@ -455,8 +445,6 @@ int main(int argc, char* argv[])
             }
             
             blockCount = fread((void*) textBlocks, sizeof(unsigned long long), THREAD_COUNT*BLOCK_SIZE, textFile);
-            clock_t post_end = clock();
-            FileIO_time += post_end - post_start;
         }
         fclose(keyFile);
         fclose(textFile);
@@ -526,8 +514,6 @@ int main(int argc, char* argv[])
     else printf("Invalid Arguments\n");
     clock_t end = clock();
     printf("Process took %f seconds\n", (float)(end-start)/CLOCKS_PER_SEC);
-    printf("File IO took %f seconds\n", (float)(FileIO_time)/CLOCKS_PER_SEC);
-    printf("Algorithm took %f seconds\n", (float)(Algorithm_time)/CLOCKS_PER_SEC);
     printf("Press Enter to Continue..");
     getchar();
     return 0;
