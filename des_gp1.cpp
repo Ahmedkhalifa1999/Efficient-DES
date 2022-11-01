@@ -1,7 +1,21 @@
+/* Use instructions:
+ * -Needs to be compiled with -pthread flag to link POSIX threads library
+ * -Compiling with -O3 flag gives a 3-fold performance improvement
+ * -Compilation Command: g++ des_gp1.cpp -pthread -O3 -o des_gp1
+ */
+
+/* Compile Time Configuration */
+#define OUTPUT_HEX 0
+#define OUTPUT_TIME_TAKEN 0
+#define ERROR_CHECKS 0
+
 #include <stdio.h>
 #include <string.h>
-#include <time.h>
 #include <pthread.h>
+
+#if OUTPUT_TIME_TAKEN
+#include <time.h>
+#endif
 
 #define BLOCK_SIZE 2048
 #define THREAD_COUNT 16
@@ -101,10 +115,6 @@ unsigned long long PermutedChoice1(unsigned long long key)
     for (unsigned char i = 0; i < 56; i++)
     {
         PC1 |= ((key >> (64 - keyPC1[i])) & 0x01) << 55-i;
-        /*
-        if (key & (1ULL << (keyPC1[i]-1)))
-            PC1 |= (1ULL << i);
-        */
     }
     return PC1;
 }
@@ -116,17 +126,11 @@ unsigned long long PermutedChoice2(unsigned long long key)
     for (unsigned char i = 0; i < 48; i++)
     {
         PC2 |= ((key >> (56 - keyPC2[i])) & 0x01) << 47-i;
-        /*
-        if (key & (1ULL << (keyPC2[i]-1)))
-            PC2 |= (1ULL << i);
-        */  
     }
     return PC2;
 
 }
-/*
-Function To Initially Permute the plaintext before entering the feistel rounds
-*/
+
 unsigned long long InitialPermutation(unsigned long long text)
 {
 	unsigned long long temp = 0;
@@ -344,7 +348,9 @@ unsigned long long IHateEndinanness(unsigned long long text)
 }
 
 unsigned long long data[THREAD_COUNT][BLOCK_SIZE];
+#if OUTPUT_HEX
 char cipherHex[THREAD_COUNT][17*BLOCK_SIZE + 1];
+#endif
 
 typedef struct {
     char ThreadNumber;
@@ -361,11 +367,13 @@ void * encryptBlock(void *args)
         data[threadNumber][i] = encrypt(data[threadNumber][i]);
         data[threadNumber][i] = IHateEndinanness(data[threadNumber][i]);
     }
+    #if OUTPUT_HEX
     int i;
     for (i = 0; i < maximum; i++)
     {
         sprintf(&cipherHex[threadNumber][17*i], "%016llX\n", data[threadNumber][i]);
     }
+    #endif
     return NULL;
 }
 
@@ -384,38 +392,40 @@ void * decryptBlock(void *args)
 
 int main(int argc, char* argv[])
 {
+    #if OUTPUT_TIME_TAKEN
     clock_t start = clock();
-    if (argc == 2 && strcmp(argv[1], "encrypt") == 0)
+    #endif
+    if (argc == 5 && strcmp(argv[1], "encrypt") == 0)
     {
-        FILE *keyFile = fopen("key.txt", "r");
+        FILE *keyFile = fopen(argv[3], "r");
         unsigned long long key = 0;
+        #if ERROR_CHECKS
         if (keyFile == NULL)
         { 
             printf("No Key File\n");
-            printf("Press Enter to Continue..");
-            getchar();
             return 0;
         }
+        #endif
         fscanf(keyFile, "%016llX", &key);
         generateKeys(key);
 
-        FILE* textFile = fopen("plain_text.txt", "rb");
-        FILE* cipherFile = fopen("cipher.hex", "wb");
+        FILE* textFile = fopen(argv[2], "rb");
+        FILE* cipherFile = fopen(argv[4], "wb");
+        #if OUTPUT_HEX
         FILE* cipherHexFile = fopen("cipherHEX.txt", "w");
+        #endif
+        #if ERROR_CHECKS
         if (textFile == NULL)
         {
             printf("No Plain Text File\n");
-            printf("Press Enter to Continue..");
-            getchar();
             return 0;
         }
         if (cipherFile == NULL)
         {
             printf("Cannot Create Cipher File\n");
-            printf("Press Enter to Continue..");
-            getchar();
             return 0;
         }
+        #endif
         size_t blockCount = fread((void*) data, sizeof(unsigned long long), THREAD_COUNT*BLOCK_SIZE, textFile);
         while (blockCount > 0) {
             int maximum = blockCount < THREAD_COUNT*BLOCK_SIZE? blockCount:THREAD_COUNT*BLOCK_SIZE;
@@ -438,49 +448,51 @@ int main(int argc, char* argv[])
             }
 
             fwrite((const void*) data, sizeof(unsigned long long), maximum, cipherFile);
+            #if OUTPUT_HEX
             for (int i = 0; i < THREAD_COUNT; i++)
             {
                 fputs(cipherHex[i], cipherHexFile);
             }
+            #endif
             
             blockCount = fread((void*) data, sizeof(unsigned long long), THREAD_COUNT*BLOCK_SIZE, textFile);
         }
         fclose(keyFile);
         fclose(textFile);
         fclose(cipherFile);
+        #if OUTPUT_HEX
+        fclose(cipherHexFile);
+        #endif
         printf("Encryption Done\n");
     }
-    else if(argc == 2 && strcmp(argv[1], "decrypt") == 0)
+    else if(argc == 5 && strcmp(argv[1], "decrypt") == 0)
     {
-        FILE *keyFile = fopen("key.txt", "r");
+        FILE *keyFile = fopen(argv[3], "r");
         unsigned long long key = 0;
+        #if ERROR_CHECKS
         if (keyFile == NULL)
         { 
             printf("No Key File\n");
-            printf("Press Enter to Continue..");
-            getchar();
             return 0;
         }
+        #endif
         fscanf(keyFile, "%llX", &key);
-        //printf("Key: %llX", key);
         generateKeys(key);
 
-        FILE* textFile = fopen("decrypted.txt", "wb");
-        FILE* cipherFile = fopen("cipher.hex", "rb");
+        FILE* textFile = fopen(argv[4], "wb");
+        FILE* cipherFile = fopen(argv[2], "rb");
+        #if ERROR_CHECKS
         if (textFile == NULL)
         {
             printf("Cannot Create Plain Text File\n");
-            printf("Press Enter to Continue..");
-            getchar();
             return 0;
         }
         if (cipherFile == NULL)
         {
             printf("No Cipher File\n");
-            printf("Press Enter to Continue..");
-            getchar();
             return 0;
         }
+        #endif
         size_t blockCount = fread((void*) data, sizeof(unsigned long long), THREAD_COUNT*BLOCK_SIZE, cipherFile);
         while (blockCount > 0) {
             int maximum = blockCount < THREAD_COUNT*BLOCK_SIZE? blockCount:THREAD_COUNT*BLOCK_SIZE;
@@ -506,14 +518,15 @@ int main(int argc, char* argv[])
             fwrite((const void*) data, sizeof(unsigned long long), maximum, textFile);
             blockCount = fread((void*) data, sizeof(unsigned long long), THREAD_COUNT*BLOCK_SIZE, cipherFile);
         }
+        fclose(keyFile);
         fclose(textFile);
         fclose(cipherFile);
         printf("Decryption Done\n");
     }
     else printf("Invalid Arguments\n");
+    #if OUTPUT_TIME_TAKEN
     clock_t end = clock();
     printf("Process took %f seconds\n", (float)(end-start)/CLOCKS_PER_SEC);
-    printf("Press Enter to Continue..");
-    getchar();
+    #endif
     return 0;
 }
