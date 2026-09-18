@@ -1,0 +1,20 @@
+# Run with:  clang-tidy src/*.c tests/kat.c -- -std=c11 -Isrc
+# Disabled checks: fprintf-to-stderr return values (cert-err33-c), the
+# "insecure API" analyzer that flags every fprintf/memset, the reserved
+# identifier check (it fires on the standard _POSIX_C_SOURCE feature macro),
+# and easily-swappable-parameters (too noisy for a two-argument cipher API).
+Checks: >
+  -*,
+  bugprone-*,
+  cert-*,
+  performance-*,
+  misc-*,
+  clang-analyzer-*,
+  -cert-err33-c,
+  -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,
+  -bugprone-reserved-identifier,
+  -cert-dcl37-c,
+  -cert-dcl51-cpp,
+  -bugprone-easily-swappable-parameters,
+  -misc-include-cleaner
+WarningsAsErrors: '*'
