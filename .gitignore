@@ -1,2 +1,14 @@
-
-test
+# build outputs
+/des
+/des-asan
+/des-tsan
+/des_gp1
+/kat
+/kat-asan
+*.o
+build/
+# scratch files produced by the tools and tests
+cipherHEX.txt
+*.ct
+*.bin
+!tests/**/*.bin

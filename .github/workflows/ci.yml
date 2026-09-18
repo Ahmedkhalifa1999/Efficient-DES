@@ -1,0 +1,23 @@
+name: CI
+on:
+  push:
+  pull_request:
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        cc: [gcc, clang]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build (warnings are errors)
+        run: make CC=${{ matrix.cc }}
+      - name: Unit and end-to-end tests
+        run: make CC=${{ matrix.cc }} test
+      - name: AddressSanitizer / UBSan
+        run: make CC=${{ matrix.cc }} test-asan
+      - name: ThreadSanitizer
+        if: matrix.cc == 'gcc'
+        run: make CC=${{ matrix.cc }} test-tsan
+      - name: Benchmark (informational)
+        run: make CC=${{ matrix.cc }} bench
